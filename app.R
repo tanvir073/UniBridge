@@ -1,7 +1,4 @@
-
-
-
-library(shiny)
+# library(shiny)
 
 # Define UI for dataset viewer app ----
 ui <- fluidPage(shinyUI(navbarPage(
