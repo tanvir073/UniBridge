@@ -73,8 +73,9 @@ ui <- fluidPage(shinyUI(navbarPage(
       
       # Main panel for displaying outputs ----
       mainPanel(
-        tableOutput("bridgeTable")
+        tableOutput("idbData")
         # verbatimTextOutput("summary")
+        
       )
     )
   ),
@@ -84,19 +85,25 @@ ui <- fluidPage(shinyUI(navbarPage(
 # Define server logic to summarize and view selected dataset ----
 server <- function(input, output) {
   
-  bridgeConType<-reactive({input$idbConType})
-  dataConType<-reactive({input$iddConType})
-  bridgeFF<-reactive({input$idbFF})
+  global_data<-reactiveValues()
+  
+  global_data$bridgeConType<-reactive({input$idbConType})
+  global_data$dataConType<-reactive({input$iddConType})
+  
+  bridgeFF<-tryCatch(reactive({input$idbFF}), error = function(e) NULL)
   
   if(length(bridgeFF)!=0) output$summary<-reactive({bridgeFF()$datapath})
-  output$bridgeTable<-reactive({
-                        if(is.null(bridgeFF)) return(NULL) 
-                          read.csv(file = bridgeFF()$datapath,header = T)
+  
+  global_data$bridgeTable<-reactive({
+                        if(is.null(bridgeFF()$datapath)) return(NULL) 
+                          read.csv(file = bridgeFF()$datapath,header = T, stringsAsFactors = FALSE)
                         
                         
                       })
     
-  
+  output$idbData <- renderTable({
+    head(global_data$bridgeTable())
+  })
   
   # ,input$idbdbConStr,input$idbFF
 }
