@@ -70,8 +70,8 @@ ui <- fluidPage(shinyUI(navbarPage(
       
       # Main panel for displaying outputs ----
       mainPanel(
-        tableOutput("idbData")
-        # verbatimTextOutput("summary")
+        tableOutput("idbData"),
+        tableOutput("iddData")
         
       )
     )
@@ -82,27 +82,38 @@ ui <- fluidPage(shinyUI(navbarPage(
 # Define server logic to summarize and view selected dataset ----
 server <- function(input, output) {
   
-  global_data<-reactiveValues()
+  ractData<-reactiveValues()
   
-  global_data$bridgeConType<-reactive({input$idbConType})
-  global_data$dataConType<-reactive({input$iddConType})
+  ## Bridge file load and output
+  ractData$bridgeConType<-reactive({input$idbConType})
+  ractData$dataConType<-reactive({input$iddConType})
   
-  bridgeFF<-tryCatch(reactive({input$idbFF}), error = function(e) NULL)
+  ractData$bridgeFF<-reactive({input$idbFF})
   
-  if(length(bridgeFF)!=0) output$summary<-reactive({bridgeFF()$datapath})
-  
-  global_data$bridgeTable<-reactive({
-                        if(is.null(bridgeFF()$datapath)) return(NULL) 
-                          read.csv(file = bridgeFF()$datapath,header = T, stringsAsFactors = FALSE)
+  ractData$bridgeTable<-reactive({
+                        if(is.null(ractData$bridgeFF()$datapath)) return(NULL) 
+                          read.csv(file = ractData$bridgeFF()$datapath,header = T, stringsAsFactors = FALSE)
                         
                         
                       })
     
   output$idbData <- renderTable({
-    head(global_data$bridgeTable())
+    head(ractData$bridgeTable())
   })
   
-  # ,input$idbdbConStr,input$idbFF
+  ## Data file load and output
+  
+  ractData$dataFF<-reactive({input$iddFF})
+  ractData$dataTable<-reactive({
+    if(is.null(ractData$dataFF()$datapath)) return(NULL) 
+    read.csv(file = ractData$dataFF()$datapath,header = T, stringsAsFactors = FALSE)
+    
+    
+  })
+  
+  output$iddData <- renderTable({
+    head(ractData$dataTable())
+  })
 }
 
 # Create Shiny app ----
