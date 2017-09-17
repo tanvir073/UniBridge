@@ -1,5 +1,14 @@
 library(shiny)
 
+runSql<-function(conn,sql){
+  
+  channel=odbcDriverConnect(conn)
+  tbl=sqlQuery(channel, sql, errors = TRUE)
+  close(channel)
+  return(tbl)
+  
+}
+
 # Define UI for dataset viewer app ----
 ui <- fluidPage(shinyUI(navbarPage(
   "My App",
@@ -27,6 +36,14 @@ ui <- fluidPage(shinyUI(navbarPage(
             inputId = "idbdbConStr",
             value = "",
             label = "Bridge DB Connection"
+          ),
+          conditionalPanel(
+            condition = "input.idbConType=='SQL DB'",
+            textInput(
+              inputId = "idbsql",
+              value = "",
+              label = "SQL Query"
+            )
           )
           
         ),
@@ -61,8 +78,16 @@ ui <- fluidPage(shinyUI(navbarPage(
           condition = "input.iddConType=='SQL DB'",
           textInput(
             inputId = "idddbConStr",
-            value = "",
+            value = "Driver=MySQL ODBC 5.3 Unicode Driver;Server=localhost;Database=test;Uid=root;Pwd=",
             label = "Data DB Connection"
+          )
+        ),
+        conditionalPanel(
+          condition = "input.iddConType=='SQL DB'",
+          textInput(
+            inputId = "iddsql",
+            value = "",
+            label = "SQL Query"
           )
         )
       ),
@@ -84,19 +109,31 @@ server <- function(input, output) {
   
   ractData<-reactiveValues()
   
-  ## Bridge file load and output
   ractData$bridgeConType<-reactive({input$idbConType})
   ractData$dataConType<-reactive({input$iddConType})
   
+  ## Bridge file load and output
+  
   ractData$bridgeFF<-reactive({input$idbFF})
+  ractData$bridgedbConn<-reactive({input$idbdbConStr})
+  ractData$bridgesql<- reactive(input$idbsql)
   
   ractData$bridgeTable<-reactive({
-                        if(is.null(ractData$bridgeFF()$datapath)) return(NULL) 
+                        if(ractData$bridgeConType()=="SQL DB" & (ractData$bridgedbConn()=="" | ractData$bridgesql()=="")){
+                          return(NULL) 
+                        }
+                        else if(ractData$bridgeConType()=="Flat File" & !is.null(ractData$bridgeFF()$datapath)){ 
                           read.csv(file = ractData$bridgeFF()$datapath,header = T, stringsAsFactors = FALSE)
+                        }
+                        else if(!(is.null(ractData$bridgedbConn()) | is.null(ractData$bridgesql()))){
+                          runSql(ractData$bridgedbConn(),ractData$bridgesql())
+                        }
+                        else return(NULL) 
                         
                         
                       })
-    
+  
+ 
   output$idbData <- renderTable({
     head(ractData$bridgeTable())
   })
